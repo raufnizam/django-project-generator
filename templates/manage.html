@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Django Project</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 2rem;
+        }
+        .manage-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .app-card {
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .app-card:hover {
+            transform: translateY(-3px);
+        }
+        .app-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .app-actions button {
+            margin-left: 0.5rem;
+        }
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .project-path {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .project-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .project-meta .badge {
+            font-size: 0.9rem;
+        }
+        .nav-tabs {
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container manage-container">
+        <div class="project-header">
+            <div>
+                <h1>Manage Project: {{ project.name }}</h1>
+                <div class="project-path">{{ project.path }}</div>
+                <div class="project-meta">
+                    {% if project.is_drf %}
+                        <span class="badge bg-success">Django REST Framework</span>
+                    {% endif %}
+                    <span class="badge bg-info">{{ apps|length }} apps</span>
+                    <span class="badge bg-secondary">Created: {{ project.created_at[:10] }}</span>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('list_projects') }}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-arrow-left"></i> Back to Projects
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle"></i> New Project
+                </a>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <ul class="nav nav-tabs" id="projectTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="apps-tab" data-bs-toggle="tab" data-bs-target="#apps" type="button" role="tab" aria-controls="apps" aria-selected="true">Apps</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="projectTabsContent">
+            <!-- Apps Tab -->
+            <div class="tab-pane fade show active" id="apps" role="tabpanel" aria-labelledby="apps-tab">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Add New App</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('add_app', project_id=project.id) }}">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="app_name" placeholder="App name" required>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> Add App
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Installed Apps</h5>
+                        <span class="badge bg-primary">{{ apps|length }} apps</span>
+                    </div>
+                    <div class="card-body">
+                        {% if apps %}
+                            <div id="apps-container">
+                                {% for app in apps %}
+                                    <div class="app-card card">
+                                        <div class="card-body d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-title mb-0">{{ app }}</h6>
+                                            </div>
+                                            <div class="app-actions">
+                                                <form method="POST" action="{{ url_for('remove_app', project_id=project.id) }}" class="d-inline">
+                                                    <input type="hidden" name="app_name" value="{{ app }}">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                        <i class="bi bi-trash"></i> Remove
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No apps installed yet. Add your first app above.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Project Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('update_project_details', project_id=project.id) }}">
+                            <div class="mb-3">
+                                <label for="project_name" class="form-label">Project Name</label>
+                                <input type="text" class="form-control" id="project_name" name="project_name" value="{{ project.name }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Project Path</label>
+                                <input type="text" class="form-control" value="{{ project.path }}" readonly>
+                                <div class="form-text">Project path cannot be changed after creation</div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="is_drf" name="is_drf" {{ 'checked' if project.is_drf else '' }} disabled>
+                                <label class="form-check-label" for="is_drf">Django REST Framework</label>
+                                <div class="form-text">DRF setting cannot be changed after creation</div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">Update Project</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">Danger Zone</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Once you delete a project, there is no going back. Please be certain.</p>
+                        <form method="POST" action="{{ url_for('delete_project_route', project_id=project.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this project? This action cannot be undone.')">
+                                <i class="bi bi-trash"></i> Delete Project
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-refresh apps list every 5 seconds
+        setInterval(function() {
+            fetch(`/api/apps/{{ project.id }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.apps) {
+                        const appsContainer = document.getElementById('apps-container');
+                        if (appsContainer) {
+                            // Only update if the number of apps changed
+                            if (data.apps.length !== appsContainer.children.length) {
+                                location.reload();
+                            }
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching apps:', error));
+        }, 5000);
+    </script>
+</body>
+</html>

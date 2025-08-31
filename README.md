@@ -18,6 +18,17 @@ This is a web-based tool to simplify the creation and management of Django proje
 
 ## How to Run
 
+## Getting Started
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/raufnizam/django-project-generator.git
+    ```
+
+2.  **Navigate to the project directory:**
+    ```bash
+    cd django-project-generator
+    ```
 1.  **Install Dependencies:**
     ```bash
     pip install -r requirements.txt
